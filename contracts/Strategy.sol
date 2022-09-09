@@ -60,7 +60,6 @@ contract Strategy is BaseStrategy {
         address _cTokenAdd,
         string memory _strategyName
     ) public BaseStrategy(_vault) {
-        // cTokenAdd = Morpho Market for want token, address of cToken
         cTokenAdd = _cTokenAdd;
         strategyName = _strategyName;
         want.safeApprove(address(MORPHO), type(uint256).max);

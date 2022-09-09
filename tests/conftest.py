@@ -38,36 +38,79 @@ def keeper(accounts):
     yield accounts[5]
 
 
-@pytest.fixture
-def token():
-    token_address = "0xdAC17F958D2ee523a2206206994597C13D831ec7"  # USDT
-    # token_address = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"  # USDC
-    yield Contract(token_address)
+token_addresses = {
+    "WBTC": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",  # WBTC
+    "WETH": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",  # WETH
+    "USDT": "0xdAC17F958D2ee523a2206206994597C13D831ec7",  # USDT
+    "DAI": "0x6B175474E89094C44Da98b954EedeAC495271d0F",  # DAI
+    "USDC": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",  # USDC
+}
 
 
-@pytest.fixture
-def token_whale(accounts):
-    yield accounts.at(
-        "0x5754284f345afc66a98fbb0a0afe71e0f007b949", force=True
-    )  # Reserve = Tether: Treasury
-    # yield accounts.at("0x55fe002aeff02f77364de339a1292923a15844b8", force=True) #Reserve = Circle
+# TODO: uncomment those tokens you want to test as want
+@pytest.fixture(
+    params=[
+        # "WBTC",  # WBTC
+        # "WETH",  # WETH
+        "USDT",  # USDT
+        # "DAI",  # DAI
+        # "USDC",  # USDC
+    ],
+    scope="session",
+    autouse=True,
+)
+def token(request):
+    yield Contract(token_addresses[request.param])
 
 
-@pytest.fixture
-def amount(accounts, token, user, token_whale):
-    amount = 10_000 * 10 ** token.decimals()
-    # In order to get some funds for the token you are about to use,
-    # it impersonate an exchange address to use it's funds.
-    reserve = token_whale
-    token.transfer(user, amount, {"from": reserve})
+whale_addresses = {
+    "WBTC": "0xbf72da2bd84c5170618fbe5914b0eca9638d5eb5",
+    "WETH": "0x28c6c06298d514db089934071355e5743bf21d60",
+    "USDT": "0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503",
+    "DAI": "0xf977814e90da44bfa03b6295a0616a897441acec",
+    "USDC": "0x0a59649758aa4d66e25f08dd01271e891fe52199",
+}
+
+
+@pytest.fixture(scope="session", autouse=True)
+def token_whale(accounts, token):
+    yield accounts.at(whale_addresses[token.symbol()], force=True)
+
+
+token_prices = {
+    "WBTC": 35_000,
+    "WETH": 2_000,
+    "USDT": 1,
+    "USDC": 1,
+    "DAI": 1,
+}
+
+
+@pytest.fixture(autouse=True)
+def amount(token, token_whale, user):
+    # this will get the number of tokens (around $1m worth of token)
+    amillion = round(1_000_000 / token_prices[token.symbol()])
+    amount = amillion * 10 ** token.decimals()
+    # # In order to get some funds for the token you are about to use,
+    # # it impersonate a whale address
+    if amount > token.balanceOf(token_whale):
+        amount = token.balanceOf(token_whale)
+    token.transfer(user, amount, {"from": token_whale})
     yield amount
 
 
-@pytest.fixture
-def cToken():
-    token_address = "0xf650C3d88D12dB855b8bf7D11Be6C55A4e07dCC9"  # cUSDT
-    # token_address = "0x39AA39c021dfbaE8faC545936693aC917d5E7563" # cUSDC
-    yield Contract(token_address)
+compound_pool_token_addresses = {
+    "WBTC": "0xC11b1268C1A384e55C48c2391d8d480264A3A7F4",  # cWBTC
+    "WETH": "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5",  # cETH
+    "USDT": "0xf650C3d88D12dB855b8bf7D11Be6C55A4e07dCC9",  # cUSDT
+    "DAI": "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643",  # cDAI
+    "USDC": "0x39AA39c021dfbaE8faC545936693aC917d5E7563",  # cUSDC
+}
+
+
+@pytest.fixture(scope="session", autouse=True)
+def poolToken(token):
+    yield compound_pool_token_addresses[token.symbol()]
 
 
 @pytest.fixture
@@ -118,9 +161,19 @@ def vault(pm, gov, rewards, guardian, management, token):
 
 @pytest.fixture
 def strategy(
-    strategist, keeper, vault, cToken, Strategy, gov, trade_factory, ymechs_safe
+    strategist,
+    keeper,
+    vault,
+    poolToken,
+    Strategy,
+    gov,
+    trade_factory,
+    ymechs_safe,
+    token,
 ):
-    strategy = strategist.deploy(Strategy, vault, cToken, "StrategyMorphoUSDT")
+    strategy = strategist.deploy(
+        Strategy, vault, poolToken, "StrategyMorpho" + token.symbol()
+    )
     strategy.setKeeper(keeper)
     vault.addStrategy(strategy, 10_000, 0, 2**256 - 1, 1_000, {"from": gov})
     trade_factory.grantRole(

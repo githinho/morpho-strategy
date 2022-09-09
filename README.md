@@ -11,11 +11,12 @@ There is also a fallback option to use Sushi v2 or Uniswap v2 if ySwap is not se
 When a new borrower comes in, he is matched with the highest liquidity supplier.
 This flow goes until the full p2p liquidity is matched or all provided gas is used.
 
-### Want token - USDT
+### Want token
 
-The strategy and tests are written with `USDT` as `want` token. Strategy can be easily changed to use other tokens like
-`USDC`, `UNI` by just changing strategy constructor parameters.
+The strategy and tests are written for multiple tokens on Morpho protocol: `USDT`,`USDC`, `DAI` and `WETH`.
+The strategy can be easily changed to use any token by just changing strategy constructor parameters.
 For more tokens see [Morpho protocol dashboard](https://compound.morpho.xyz/?network=mainnet).
+`WBTC` should also work as want token but Morpho has some problem with `Lens` fetching data for this token pool.
 
 ### External calls to Morpho
 

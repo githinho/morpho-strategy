@@ -32,8 +32,6 @@ abstract contract MorphoStrategy is BaseStrategy {
     ILens public immutable lens;
     // poolToken = Morpho Market for want token, address of poolToken
     address public immutable poolToken;
-    address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-
     // Max gas used for matching with p2p deals
     uint256 public maxGasForMatching = 100000;
     string internal strategyName;

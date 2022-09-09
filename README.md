@@ -87,7 +87,7 @@ To deploy the demo Yearn Strategy in a development environment:
 1. Open the Brownie console. This automatically launches Ganache on a forked mainnet.
 
 ```bash
-$ brownie console
+brownie console
 ```
 
 2. Create variables for the Yearn Vault and Want Token addresses. These were obtained from the Yearn Registry. We load them from a different repository found in the brownie-config.yml under dependencies (yearn/yearn-vaults@0.4.3):
@@ -104,7 +104,7 @@ gov = "ychad.eth"  # ENS for Yearn Governance Multisig
 
 or you can get the contracts ABI from etherscan API, make sure you have exported your etherscan token.
 
-```
+```python
 from brownie import Contract
 vault = Contract("0xdA816459F1AB5631232FE5e97a05BBBb94970c95")
 token = Contract("0x6b175474e89094c44da98b954eedeac495271d0f")
@@ -157,7 +157,7 @@ If you are getting a revert error, it's most likley because the vault can't add 
 
 To run the tests:
 
-```
+```bash
 brownie test
 ```
 
@@ -216,9 +216,9 @@ You will be prompted to enter your keystore password, and then the contract will
 
 ### No access to archive state errors
 
-If you are using Ganache to fork a network, then you may have issues with the blockchain archive state every 30 minutes. This is due to your node provider (i.e. Infura) only allowing free users access to 30 minutes of archive state. To solve this, upgrade to a paid plan, or simply restart your ganache instance and redploy your contracts.
+If you are using Ganache to fork a network, then you may have issues with the blockchain archive state every 30 minutes. This is due to your node provider (i.e. Infura) only allowing free users access to 30 minutes of archive state. To solve this, upgrade to a paid plan, or simply restart your ganache instance and redeploy your contracts.
 
-# Resources
+## Resources
 
 - Yearn [Discord channel](https://discord.com/invite/6PNv2nF/)
 - Brownie [Gitter channel](https://gitter.im/eth-brownie/community)

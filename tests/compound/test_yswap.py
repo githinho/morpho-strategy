@@ -1,5 +1,6 @@
 import brownie
 from brownie import Contract
+from brownie import ZERO_ADDRESS
 import pytest
 
 
@@ -89,5 +90,5 @@ def test_profitable_harvest_using_yswap(
 def test_disabling_trade_factory(strategy, comp_token, gov, trade_factory):
     assert strategy.tradeFactory() == trade_factory.address
     strategy.removeTradeFactoryPermissions({"from": gov})
-    assert strategy.tradeFactory() == "0x0000000000000000000000000000000000000000"
+    assert strategy.tradeFactory() == ZERO_ADDRESS
     assert comp_token.allowance(strategy.address, trade_factory.address) == 0

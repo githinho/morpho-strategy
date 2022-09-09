@@ -7,7 +7,7 @@ def test_strategy_setup(
     token, comp_token, vault, strategy, trade_factory, sushi_address, uni_address
 ):
     uint256_max = 2**256 - 1
-    assert token.allowance(strategy.address, strategy.MORPHO()) == uint256_max
+    assert token.allowance(strategy.address, strategy.morpho()) == uint256_max
 
     # assert that the default router is sushi
     assert strategy.currentV2Router() == sushi_address

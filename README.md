@@ -5,17 +5,41 @@
 This repo contains a strategy for [Morpho protocol](https://morpho.xyz/) on Ethereum mainnet.
 The strategy supplies strategy `want` token to Morpho protocol. If the protocol can find a match from the borrowing side
 it connects two sides for a peer-to-peer deal providing [better APY for both sides](https://docs.morpho.xyz/start-here/how-it-works).
-Otherwise, the liquidity is supplied to the underlying protocol, currently, only Compound, which provides lower APY and
-reward tokens COMP which are swapped for strategy `want` token using ySwap.
-There is also a fallback option to use Sushi v2 or Uniswap v2 if ySwap is not set.
+Otherwise, the liquidity is supplied to the underlying protocol, Aave or Compound, which provides lower APY.
 When a new borrower comes in, he is matched with the highest liquidity supplier.
 This flow goes until the full p2p liquidity is matched or all provided gas is used.
+See base strategy contract [MorphoStrategy](./contracts/MorphoStrategy.sol).
+
+### Compound
+
+Compound protocol also rewards with additional token COMP which is swapped for strategy `want` token using ySwap.
+There is also a fallback option to use Sushi v2 (default) or Uniswap v2 if ySwap is not set.
+Except from claiming and swapping reward token, the strategy is the same as base Morpho strategy.
+See [MorphoCompoundStrategy](./contracts/MorphoCompoundStrategy.sol).
+
+### Aave
+
+Aave protocol doesn't provide any additional rewards token so Aave strategy just extends the base Morpho strategy.
+See [MorphoAaveStrategy](./contracts/MorphoAaveStrategy.sol).
 
 ### Want token
 
-The strategy and tests are written for multiple tokens on Morpho protocol: `USDT`,`USDC`, `DAI`, `WETH` and `WBTC`.
-The strategy can be easily changed to use any token by just changing strategy constructor parameters.
+The strategy and tests are written for multiple tokens on Morpho protocol: `USDT`, `USDC`, `DAI`, `WETH` and `WBTC`.
+The strategy can be easily set to use any token by providing a token address to the strategy constructor.
 For more tokens see [Morpho protocol dashboard](https://compound.morpho.xyz/?network=mainnet).
+
+### Tests
+
+There are two strategies and some tests are not the same so they are separated into two folders:
+
+- [aave](./tests/aave/)
+- [compound](./tests/compound/)
+
+By default, tests will run for both strategies using `USDT` as want token. To add additional tokens for testing,
+expand `token` params list or remove all to disable tests for a specific strategy.
+
+- [aave strategy want token list](./tests/aave/conftest.py#L51)
+- [compound strategy want token list](./tests/compound/conftest.py#L52)
 
 ### External calls to Morpho
 

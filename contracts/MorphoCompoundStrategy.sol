@@ -69,7 +69,6 @@ contract MorphoCompoundStrategy is MorphoStrategy {
         comp.safeTransfer(_newStrategy, comp.balanceOf(address(this)));
     }
 
-
     // ---------------------- functions for claiming reward token COMP ------------------
     function claimComp() internal {
         address[] memory pools = new address[](1);
@@ -82,7 +81,6 @@ contract MorphoCompoundStrategy is MorphoStrategy {
             morpho.claimRewards(pools, false);
         }
     }
-
 
     // ---------------------- functions for selling reward token COMP -------------------
     /**

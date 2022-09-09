@@ -13,10 +13,9 @@ This flow goes until the full p2p liquidity is matched or all provided gas is us
 
 ### Want token
 
-The strategy and tests are written for multiple tokens on Morpho protocol: `USDT`,`USDC`, `DAI` and `WETH`.
+The strategy and tests are written for multiple tokens on Morpho protocol: `USDT`,`USDC`, `DAI`, `WETH` and `WBTC`.
 The strategy can be easily changed to use any token by just changing strategy constructor parameters.
 For more tokens see [Morpho protocol dashboard](https://compound.morpho.xyz/?network=mainnet).
-`WBTC` should also work as want token but Morpho has some problem with `Lens` fetching data for this token pool.
 
 ### External calls to Morpho
 

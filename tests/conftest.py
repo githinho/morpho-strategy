@@ -100,7 +100,7 @@ def amount(token, token_whale, user):
 
 
 compound_pool_token_addresses = {
-    "WBTC": "0xC11b1268C1A384e55C48c2391d8d480264A3A7F4",  # cWBTC
+    "WBTC": "0xccF4429DB6322D5C611ee964527D42E5d685DD6a",  # cWBTC
     "WETH": "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5",  # cETH
     "USDT": "0xf650C3d88D12dB855b8bf7D11Be6C55A4e07dCC9",  # cUSDT
     "DAI": "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643",  # cDAI

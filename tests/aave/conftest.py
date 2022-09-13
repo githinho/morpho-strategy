@@ -49,11 +49,11 @@ token_addresses = {
 # TODO: uncomment those tokens you want to test as want
 @pytest.fixture(
     params=[
-        # "WBTC",  # WBTC
-        # "WETH",  # WETH
+        "WBTC",  # WBTC
+        "WETH",  # WETH
         "USDT",  # USDT
-        # "DAI",  # DAI
-        # "USDC",  # USDC
+        "DAI",  # DAI
+        "USDC",  # USDC
     ],
     scope="session",
     autouse=True,
@@ -63,10 +63,10 @@ def token(request):
 
 
 whale_addresses = {
-    "WBTC": "0x28c6c06298d514db089934071355e5743bf21d60",
-    "WETH": "0x28c6c06298d514db089934071355e5743bf21d60",
+    "WBTC": "0xbf72da2bd84c5170618fbe5914b0eca9638d5eb5",
+    "WETH": "0x2f0b23f53734252bda2277357e97e1517d6b042a",
     "USDT": "0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503",
-    "DAI": "0x47ac0Fb4F2D84898e4D9E7b4DaB3C24507a6D503",
+    "DAI": "0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7",
     "USDC": "0x0a59649758aa4d66e25f08dd01271e891fe52199",
 }
 
@@ -114,8 +114,7 @@ def poolToken(token):
 
 @pytest.fixture
 def weth():
-    token_address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
-    yield Contract(token_address)
+    yield Contract(token_addresses["WETH"])
 
 
 @pytest.fixture
@@ -123,6 +122,21 @@ def weth_amount(user, weth):
     weth_amount = 10 ** weth.decimals()
     user.transfer(weth, weth_amount)
     yield weth_amount
+
+
+@pytest.fixture
+def usdt():
+    yield Contract(token_addresses["USDT"])
+
+
+@pytest.fixture
+def usdt_amount(accounts, usdt, user):
+    amount = 10_000 * 10 ** usdt.decimals()
+    # In order to get some funds for the token you are about to use,
+    # it impersonate an exchange address to use it's funds.
+    reserve = accounts.at(whale_addresses["USDT"], force=True)
+    usdt.transfer(user, amount, {"from": reserve})
+    yield amount
 
 
 @pytest.fixture

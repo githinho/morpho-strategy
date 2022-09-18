@@ -10,13 +10,17 @@ def test_profitable_harvest_using_yswap(
     vault,
     strategy,
     user,
+    gov,
     amount,
     RELATIVE_APPROX,
-    comp_token,
-    comp_whale,
+    aave_token,
+    aave_whale,
     trade_factory,
     ymechs_safe,
 ):
+    # Enable trade factory
+    strategy.setTradeFactory(trade_factory.address, {"from": gov})
+
     # Deposit to the vault
     token.approve(vault.address, amount, {"from": user})
     vault.deposit(amount, {"from": user})
@@ -30,17 +34,17 @@ def test_profitable_harvest_using_yswap(
     assert pytest.approx(strategy.estimatedTotalAssets(), rel=RELATIVE_APPROX) == amount
 
     # Strategy earned reward tokens
-    comp_token.transfer(
-        strategy, 2 * strategy.minRewardToClaimOrSell(), {"from": comp_whale}
+    aave_token.transfer(
+        strategy, 2 * strategy.minRewardToClaimOrSell(), {"from": aave_whale}
     )
 
     tx_swap = execute_yswap(
         trade_factory,
         ymechs_safe,
         strategy.address,
-        comp_token.address,
+        aave_token.address,
         token.address,
-        comp_token.balanceOf(strategy),
+        aave_token.balanceOf(strategy),
     )
     assert tx_swap.return_value > 0
 
@@ -54,11 +58,14 @@ def test_profitable_harvest_using_yswap(
     assert vault.pricePerShare() > before_pps
 
 
-def test_disabling_trade_factory(strategy, comp_token, gov, trade_factory):
+def test_disabling_trade_factory(strategy, aave_token, gov, trade_factory):
+    # Enable trade factory
+    strategy.setTradeFactory(trade_factory.address, {"from": gov})
+
     assert strategy.tradeFactory() == trade_factory.address
     strategy.removeTradeFactoryPermissions({"from": gov})
     assert strategy.tradeFactory() == ZERO_ADDRESS
-    assert comp_token.allowance(strategy.address, trade_factory.address) == 0
+    assert aave_token.allowance(strategy.address, trade_factory.address) == 0
 
 
 def test_profitable_harvest_exit_using_yswap(
@@ -68,13 +75,17 @@ def test_profitable_harvest_exit_using_yswap(
     strategy,
     strategist,
     user,
+    gov,
     amount,
     RELATIVE_APPROX,
-    comp_token,
-    comp_whale,
+    aave_token,
+    aave_whale,
     trade_factory,
     ymechs_safe,
 ):
+    # Enable trade factory
+    strategy.setTradeFactory(trade_factory.address, {"from": gov})
+
     # Deposit to the vault
     token.approve(vault.address, amount, {"from": user})
     vault.deposit(amount, {"from": user})
@@ -88,17 +99,17 @@ def test_profitable_harvest_exit_using_yswap(
     assert pytest.approx(strategy.estimatedTotalAssets(), rel=RELATIVE_APPROX) == amount
 
     # Strategy earned reward tokens
-    comp_token.transfer(
-        strategy, 2 * strategy.minRewardToClaimOrSell(), {"from": comp_whale}
+    aave_token.transfer(
+        strategy, 2 * strategy.minRewardToClaimOrSell(), {"from": aave_whale}
     )
 
     tx_swap = execute_yswap(
         trade_factory,
         ymechs_safe,
         strategy.address,
-        comp_token.address,
+        aave_token.address,
         token.address,
-        comp_token.balanceOf(strategy),
+        aave_token.balanceOf(strategy),
     )
     assert tx_swap.return_value > 0
 
@@ -137,18 +148,19 @@ def execute_yswap(
         1,
     ]
 
-    # TODO: encode path
-    # path = [token_in.address, weth.address, token_out.address]
-    # Code in Solidity used to generate path_in_bytes:
-    # address[] memory path = new address[](3);
-    # path[0] = 0xc00e94Cb662C3520282E6f5717214004A7f26888;
-    # path[1] = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    # path[2] = token.address;
-    # return abi.encode(path);
-    path_in_bytes = (
-        "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000c00e94cb662c3520282e6f5717214004a7f26888000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2000000000000000000000000"
-        + token_out_address[2:]
-    )
+    if token_out_address == "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2":
+        path_in_bytes = (
+            "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000002000000000000000000000000"
+            + token_in_address[2:]
+            + "000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2000000000000000000000000"
+        )
+    else:
+        path_in_bytes = (
+            "0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000003000000000000000000000000"
+            + token_in_address[2:]
+            + "000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2000000000000000000000000"
+            + token_out_address[2:]
+        )
 
     # Trigger ySwap
     # trade_factory.execute(

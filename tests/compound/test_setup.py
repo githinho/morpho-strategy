@@ -27,10 +27,10 @@ def test_toggle_swap_router(strategy, sushi_address, uni_address):
 
 
 def test_set_min_comp_to_claim(strategy):
-    assert strategy.minCompToClaimOrSell() == Wei("0.1 ether")
+    assert strategy.minRewardToClaimOrSell() == Wei("0.1 ether")
     new_value = Wei("11.11 ether")
-    strategy.setMinCompToClaimOrSell(new_value)
-    assert strategy.minCompToClaimOrSell() == new_value
+    strategy.setMinRewardToClaimOrSell(new_value)
+    assert strategy.minRewardToClaimOrSell() == new_value
 
 
 def test_set_max_gas_for_matching(strategy):

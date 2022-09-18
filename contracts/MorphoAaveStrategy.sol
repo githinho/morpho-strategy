@@ -19,7 +19,10 @@ contract MorphoAaveStrategy is MorphoStrategy {
             _poolToken,
             _strategyName,
             0x777777c9898D384F785Ee44Acfe945efDFf5f3E0,
-            0x507fA343d0A90786d86C7cd885f5C49263A91FF4
+            0x507fA343d0A90786d86C7cd885f5C49263A91FF4,
+            0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9
         )
     {}
+
+    function claimRewardToken() internal override {}
 }

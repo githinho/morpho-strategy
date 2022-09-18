@@ -34,7 +34,7 @@ def test_harvest_exit(
 
     # Strategy earned reward tokens
     comp_token.transfer(
-        strategy, 2 * strategy.minCompToClaimOrSell(), {"from": comp_whale}
+        strategy, 2 * strategy.minRewardToClaimOrSell(), {"from": comp_whale}
     )
 
     # Harvest 2: Realize profit

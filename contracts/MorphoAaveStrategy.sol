@@ -8,6 +8,7 @@ pragma experimental ABIEncoderV2;
 import "./MorphoStrategy.sol";
 
 contract MorphoAaveStrategy is MorphoStrategy {
+    // TODO: change the reward token (last param) if needed, current is AAVE
     constructor(
         address _vault,
         address _poolToken,
@@ -24,5 +25,7 @@ contract MorphoAaveStrategy is MorphoStrategy {
         )
     {}
 
-    function claimRewardToken() internal override {}
+    function claimRewardToken() internal override {
+        // TODO: implement function for claiming rewards when added to Morpho Aave
+    }
 }

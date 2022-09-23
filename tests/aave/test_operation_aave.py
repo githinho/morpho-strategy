@@ -3,7 +3,7 @@ from brownie import Contract
 import pytest
 
 
-def aave_test_operation(
+def test_operation(
     chain, accounts, token, vault, strategy, user, strategist, amount, RELATIVE_APPROX
 ):
     # Deposit to the vault
@@ -27,7 +27,7 @@ def aave_test_operation(
     )
 
 
-def aave_test_emergency_exit(
+def test_emergency_exit(
     chain, accounts, token, vault, strategy, user, strategist, amount, RELATIVE_APPROX
 ):
     # Deposit to the vault
@@ -44,7 +44,7 @@ def aave_test_emergency_exit(
     assert strategy.estimatedTotalAssets() < amount
 
 
-def aave_test_profitable_harvest(
+def test_profitable_harvest(
     chain,
     accounts,
     token,
@@ -83,7 +83,7 @@ def aave_test_profitable_harvest(
     assert vault.pricePerShare() > before_pps
 
 
-def aave_test_change_debt(
+def test_change_debt(
     chain, gov, token, vault, strategy, user, strategist, amount, RELATIVE_APPROX
 ):
     # Deposit to the vault and harvest

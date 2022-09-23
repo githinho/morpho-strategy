@@ -6,6 +6,7 @@ pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./MorphoStrategy.sol";
+import "../interfaces/ILens.sol";
 
 contract MorphoAaveStrategy is MorphoStrategy {
     constructor(
@@ -22,4 +23,14 @@ contract MorphoAaveStrategy is MorphoStrategy {
             0x507fA343d0A90786d86C7cd885f5C49263A91FF4
         )
     {}
+
+    function getNextUserSupplyBalances(uint256 _amount)
+        public
+        view
+        override
+        returns (uint256 _balanceInP2P, uint256 _balanceOnPool)
+    {
+        (, _balanceInP2P, _balanceOnPool, ) = ILensAave(address(lens))
+            .getNextUserSupplyRatePerYear(poolToken, address(this), _amount);
+    }
 }

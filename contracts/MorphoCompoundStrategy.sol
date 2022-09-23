@@ -6,6 +6,7 @@ pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./MorphoStrategy.sol";
+import "../interfaces/ILens.sol";
 import "../interfaces/IUniswapV2Router01.sol";
 import "../interfaces/ySwap/ITradeFactory.sol";
 
@@ -67,6 +68,16 @@ contract MorphoCompoundStrategy is MorphoStrategy {
         claimComp();
         IERC20 comp = IERC20(COMP);
         comp.safeTransfer(_newStrategy, comp.balanceOf(address(this)));
+    }
+
+    function getNextUserSupplyBalances(uint256 _amount)
+        public
+        view
+        override
+        returns (uint256 _balanceInP2P, uint256 _balanceOnPool)
+    {
+        (, _balanceOnPool, _balanceInP2P, ) = ILensCompound(address(lens))
+            .getNextUserSupplyRatePerBlock(poolToken, address(this), _amount);
     }
 
     // ---------------------- functions for claiming reward token COMP ------------------

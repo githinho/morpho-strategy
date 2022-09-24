@@ -6,9 +6,12 @@ pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./MorphoStrategy.sol";
-import "../interfaces/ILens.sol";
+import "../interfaces/lens/ILensAave.sol";
 
 contract MorphoAaveStrategy is MorphoStrategy {
+    // used to downscale APR value to match Compound APR precision
+    uint256 private constant COMPOUND_DOWNSCALE = 10**9;
+
     constructor(
         address _vault,
         address _poolToken,
@@ -28,9 +31,17 @@ contract MorphoAaveStrategy is MorphoStrategy {
         public
         view
         override
-        returns (uint256 _balanceInP2P, uint256 _balanceOnPool)
+        returns (
+            uint256 _balanceInP2P,
+            uint256 _balanceOnPool,
+            uint256 _apr
+        )
     {
-        (, _balanceInP2P, _balanceOnPool, ) = ILensAave(address(lens))
+        uint256 nextSupplyRatePerYear;
+        (nextSupplyRatePerYear, _balanceInP2P, _balanceOnPool, ) = ILensAave(
+            address(lens)
+        )
             .getNextUserSupplyRatePerYear(poolToken, address(this), _amount);
+        _apr = nextSupplyRatePerYear.div(COMPOUND_DOWNSCALE);
     }
 }

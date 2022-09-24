@@ -19,7 +19,7 @@ import {
 import "@openzeppelin/contracts/math/Math.sol";
 
 import "../interfaces/IMorpho.sol";
-import "../interfaces/ILens.sol";
+import "../interfaces/lens/ILens.sol";
 
 abstract contract MorphoStrategy is BaseStrategy {
     using SafeERC20 for IERC20;
@@ -191,7 +191,7 @@ abstract contract MorphoStrategy is BaseStrategy {
         maxGasForMatching = _maxGasForMatching;
     }
 
-    // ******** View function ************
+    // ---------------------- View function ----------------------
     /**
      * @notice
      *  Computes and returns the total amount of underlying ERC20 token a given user has supplied through Morpho
@@ -271,18 +271,25 @@ abstract contract MorphoStrategy is BaseStrategy {
         view
         returns (uint256 _maxP2PSupply)
     {
-        (_maxP2PSupply, ) = getNextUserSupplyBalances(type(uint128).max);
+        (_maxP2PSupply, , ) = getNextUserSupplyBalances(type(uint128).max);
     }
 
     /**
      * @notice
      *  For a given amount of pool tokens it will return balance that will end in P2P deal and balance of pool deal.
+     * @param _amount Token amount intended to supply to Morpho protocol
      * @return _balanceInP2P balance that will end up in P2P deals
      * @return _balanceOnPool balance that will end up in pool deal, underlying protocol
+     * @return _apr hypothetical supply rate per year experienced by the user on the given market,
+     * devide with 10^16 to get a number in percentage
      */
     function getNextUserSupplyBalances(uint256 _amount)
         public
         view
         virtual
-        returns (uint256 _balanceInP2P, uint256 _balanceOnPool);
+        returns (
+            uint256 _balanceInP2P,
+            uint256 _balanceOnPool,
+            uint256 _apr
+        );
 }

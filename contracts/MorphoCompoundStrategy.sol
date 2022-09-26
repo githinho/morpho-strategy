@@ -74,7 +74,7 @@ contract MorphoCompoundStrategy is MorphoStrategy {
         comp.safeTransfer(_newStrategy, comp.balanceOf(address(this)));
     }
 
-    function getNextUserSupplyBalances(uint256 _amount)
+    function getSupplyBalancesForAmount(uint256 _amount)
         public
         view
         override

@@ -27,7 +27,7 @@ contract MorphoAaveStrategy is MorphoStrategy {
         )
     {}
 
-    function getNextUserSupplyBalances(uint256 _amount)
+    function getSupplyBalancesForAmount(uint256 _amount)
         public
         view
         override

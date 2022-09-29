@@ -62,10 +62,8 @@ jobs:
         WEB3_INFURA_PROJECT_ID: b7821200399e4be2b4e5dbdf06fbe85b
       run: brownie run scripts/test.py
 
-    - name: Update data liquidity file
-      uses: test-room-7/action-update-file@v1
+    - name: Git Auto Commit
+      uses: stefanzweifel/git-auto-commit-action@v4.15.0
       with:
-          file-path: ./data/liquidity.csv
-          commit-msg: 'chore: update liquidity data file'
-          github-token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
-  
+        commit_message: 'chore: update liquidity data file'
+        file_pattern: 'data/*.csv'

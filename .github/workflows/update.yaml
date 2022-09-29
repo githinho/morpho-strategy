@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
 
     - name: Cache compiler installations
       uses: actions/cache@v2
@@ -67,5 +67,3 @@ jobs:
       with:
         commit_message: 'chore: update liquidity data file'
         file_pattern: 'data/*.csv'
-        ref: test-actions
-        fetch-depth: 0 # To get all tags

@@ -1,15 +1,13 @@
 name: Data
 
 on:
-  schedule:
-    # run every day at 6:00
-    - cron:  '0 6 * * *'
+  push:
 
 jobs:
   data:
     # TODO: enable after the strategy is deployed
-    # if: github.ref == 'refs/heads/master'
-    if: ${{ false }}
+    if: github.ref == 'refs/heads/master'
+    # if: ${{ false }}
     runs-on: ubuntu-latest
 
     steps:

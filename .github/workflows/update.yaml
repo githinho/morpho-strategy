@@ -1,14 +1,13 @@
-name: Test
+name: Data file
 
 on:
   push:
-    branches:
-    - master
-    - develop
-  pull_request:
 
 jobs:
-  test:
+  data:
+    # TODO: enable after the strategy is deployed
+    # if: github.ref == 'refs/heads/master'
+    # if: ${{ false }}
     runs-on: ubuntu-latest
 
     steps:
@@ -57,8 +56,16 @@ jobs:
     - name: Compile Code
       run: brownie compile --size
 
-    - name: Run Tests
+    - name: Collect the liquidity data and write it 
       env:
         ETHERSCAN_TOKEN: MW5CQA6QK5YMJXP2WP3RA36HM5A7RA1IHA
         WEB3_INFURA_PROJECT_ID: b7821200399e4be2b4e5dbdf06fbe85b
-      run: brownie test
+      run: brownie run scripts/write_liquidity.py
+
+    - name: Update data liquidity file
+      uses: test-room-7/action-update-file@v1
+      with:
+          file-path: ./data/liquidity.csv
+          commit-msg: 'chore: update liquidity data file'
+          github-token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
+  

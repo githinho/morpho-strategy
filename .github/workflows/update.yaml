@@ -67,3 +67,5 @@ jobs:
       with:
         commit_message: 'chore: update liquidity data file'
         file_pattern: 'data/*.csv'
+        ref: test-actions
+        fetch-depth: 0 # To get all tags

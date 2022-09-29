@@ -60,7 +60,8 @@ jobs:
       env:
         ETHERSCAN_TOKEN: MW5CQA6QK5YMJXP2WP3RA36HM5A7RA1IHA
         WEB3_INFURA_PROJECT_ID: b7821200399e4be2b4e5dbdf06fbe85b
-        STRATEGY_ADDRESS: '0x6b175474e89094c44da98b954eedeac495271d0f' # TODO: set strategy address
+        # TODO: set strategy addresses
+        STRATEGY_ADDRESSES: '0x6b175474e89094c44da98b954eedeac495271d0f,0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
       run: brownie run scripts/test.py
 
     - name: Git Auto Commit

@@ -19,7 +19,7 @@ import {
 import "@openzeppelin/contracts/math/Math.sol";
 
 import "../interfaces/IMorpho.sol";
-import "../interfaces/ILens.sol";
+import "../interfaces/lens/ILens.sol";
 
 abstract contract MorphoStrategy is BaseStrategy {
     using SafeERC20 for IERC20;
@@ -177,6 +177,23 @@ abstract contract MorphoStrategy is BaseStrategy {
 
     /**
      * @notice
+     *  Set the maximum amount of gas to consume to get matched in peer-to-peer.
+     * @dev
+     *  This value is needed in morpho supply liquidity calls.
+     *  Supplyed liquidity goes to loop with current loans on Compound
+     *  and creates a match for p2p deals. The loop starts from bigger liquidity deals.
+     * @param _maxGasForMatching new maximum gas value for
+     */
+    function setMaxGasForMatching(uint256 _maxGasForMatching)
+        external
+        onlyAuthorized
+    {
+        maxGasForMatching = _maxGasForMatching;
+    }
+
+    // ---------------------- View functions ----------------------
+    /**
+     * @notice
      *  Computes and returns the total amount of underlying ERC20 token a given user has supplied through Morpho
      *  on a given market, taking into account interests accrued.
      * @dev
@@ -192,17 +209,78 @@ abstract contract MorphoStrategy is BaseStrategy {
 
     /**
      * @notice
-     *  Set the maximum amount of gas to consume to get matched in peer-to-peer.
-     * @dev
-     *  This value is needed in morpho supply liquidity calls.
-     *  Supplyed liquidity goes to loop with current loans on Compound
-     *  and creates a match for p2p deals. The loop starts from bigger liquidity deals.
-     * @param _maxGasForMatching new maximum gas value for
+     *  Computes and returns the total amount of underlying ERC20 token a given user has supplied through Morpho
+     *  on a given market, taking into account interests accrued.
+     * @return _balanceOnPool balance of pool token provided to pool, underlying protocol
+     * @return _balanceInP2P balance provided to P2P deals
+     * @return _totalBalance equals to balanceOnPool + balanceInP2P
      */
-    function setMaxGasForMatching(uint256 _maxGasForMatching)
-        external
-        onlyAuthorized
+    function getStrategySupplyBalance()
+        public
+        view
+        returns (
+            uint256 _balanceOnPool,
+            uint256 _balanceInP2P,
+            uint256 _totalBalance
+        )
     {
-        maxGasForMatching = _maxGasForMatching;
+        (_balanceOnPool, _balanceInP2P, _totalBalance) = lens
+            .getCurrentSupplyBalanceInOf(poolToken, address(this));
     }
+
+    /**
+     * @notice
+     *  Gets the current liquditiy, both P2P and pool, for supplied and borrowed amount in Morpho protocol for strategy pool token
+     * @return _p2pSupplyAmount supplied amount of pool token in P2P deals
+     * @return _p2pBorrowAmount borrowed amount of pool token in P2P deals
+     * @return _poolSupplyAmount supplied amount of pool token in pool deals, non P2P deals
+     * @return _poolBorrowAmount borrowed amount of pool token in pool deals, non P2P deals
+     */
+    function getCurrentMarketLiquidity()
+        external
+        view
+        returns (
+            uint256 _p2pSupplyAmount,
+            uint256 _p2pBorrowAmount,
+            uint256 _poolSupplyAmount,
+            uint256 _poolBorrowAmount
+        )
+    {
+        (
+            ,
+            ,
+            _p2pSupplyAmount,
+            _p2pBorrowAmount,
+            _poolSupplyAmount,
+            _poolBorrowAmount
+        ) = lens.getMainMarketData(poolToken);
+    }
+
+    /**
+     * @notice
+     *  Caluclates the maximum amount that can be supplied to just P2P deals.
+     * @return _maxP2PSupply maximum amount that can be supplied to P2P deals
+     */
+    function getMaxP2PSupply() external view returns (uint256 _maxP2PSupply) {
+        (_maxP2PSupply, , ) = getSupplyBalancesForAmount(type(uint128).max);
+    }
+
+    /**
+     * @notice
+     *  For a given amount of pool tokens it will return balance that will end in P2P deal and balance of pool deal.
+     * @param _amount Token amount intended to supply to Morpho protocol
+     * @return _balanceInP2P balance that will end up in P2P deals
+     * @return _balanceOnPool balance that will end up in pool deal, underlying protocol
+     * @return _apr hypothetical supply rate per year experienced by the user on the given market,
+     * devide by 10^16 to get a number in percentage
+     */
+    function getSupplyBalancesForAmount(uint256 _amount)
+        public
+        view
+        virtual
+        returns (
+            uint256 _balanceInP2P,
+            uint256 _balanceOnPool,
+            uint256 _apr
+        );
 }

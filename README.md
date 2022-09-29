@@ -41,6 +41,26 @@ expand `token` params list or remove all to disable tests for a specific strateg
 - [aave strategy want token list](./tests/aave/conftest.py#L51)
 - [compound strategy want token list](./tests/compound/conftest.py#L52)
 
+### Liquidity data
+
+The liquidity data can be collecting to CSV file using Github Actions Workflow [data.yaml](.github/workflows/data.yaml).
+Currently, it's disable, to enable change [workflow job](.github/workflows/data.yaml#L12) and
+[set strategy addresses](.github/workflows/data.yaml#L66) that you want to track.
+It is scheduled to run [ones per day](.github/workflows/data.yaml#L6).
+Workflow supports tracking single and multiple strategies by defining strategy addresses separated by commas.
+The liquidity data is appended to a file after each Github Action is completed.
+
+See example of the collected data: [example_file.csv](./data/example_file.csv).
+Files for each strategy are created in the [folder data](./data/) with name: `strategy_ADDRESS.csv`.
+The data is collected using [Python script](./scripts/write_liquidity.py).
+
+Script for collecting data can be run manually, first define environment variable `STRATEGY_ADDRESSES` in file `.env`.
+Run command:
+
+```bash
+brownie run scripts/write_liquidity.py
+```
+
 ### External calls to Morpho
 
 Link to docs for using [IMorpho interface](interfaces/IMorpho.sol):

@@ -19,4 +19,16 @@ interface ILens {
             uint256 balanceInP2P,
             uint256 totalBalance
         );
+
+    function getMainMarketData(address _poolTokenAddress)
+        external
+        view
+        returns (
+            uint256 avgSupplyRatePerBlock,
+            uint256 avgBorrowRatePerBlock,
+            uint256 p2pSupplyAmount,
+            uint256 p2pBorrowAmount,
+            uint256 poolSupplyAmount,
+            uint256 poolBorrowAmount
+        );
 }

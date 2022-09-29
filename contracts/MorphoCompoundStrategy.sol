@@ -7,6 +7,7 @@ pragma experimental ABIEncoderV2;
 
 import "./MorphoStrategy.sol";
 import "../interfaces/IUniswapV2Router01.sol";
+import "../interfaces/lens/ILensCompound.sol";
 import "../interfaces/ySwap/ITradeFactory.sol";
 
 contract MorphoCompoundStrategy is MorphoStrategy {
@@ -23,6 +24,10 @@ contract MorphoCompoundStrategy is MorphoStrategy {
         IUniswapV2Router01(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
     IUniswapV2Router01 private constant SUSHI_V2_ROUTER =
         IUniswapV2Router01(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
+
+    // use aave metric for seconds per year: https://docs.aave.com/developers/v/2.0/guides/apy-and-apr#compute-data
+    // block per year = seconds per year / 4 = 31536000 / 4 = 2628000
+    uint256 private constant BLOCKS_PER_YEAR = 2628000;
 
     constructor(
         address _vault,
@@ -67,6 +72,30 @@ contract MorphoCompoundStrategy is MorphoStrategy {
         claimComp();
         IERC20 comp = IERC20(COMP);
         comp.safeTransfer(_newStrategy, comp.balanceOf(address(this)));
+    }
+
+    function getSupplyBalancesForAmount(uint256 _amount)
+        public
+        view
+        override
+        returns (
+            uint256 _balanceInP2P,
+            uint256 _balanceOnPool,
+            uint256 _apr
+        )
+    {
+        uint256 nextSupplyRatePerBlock;
+        (
+            nextSupplyRatePerBlock,
+            _balanceOnPool,
+            _balanceInP2P,
+
+        ) = ILensCompound(address(lens)).getNextUserSupplyRatePerBlock(
+            poolToken,
+            address(this),
+            _amount
+        );
+        _apr = nextSupplyRatePerBlock.mul(BLOCKS_PER_YEAR);
     }
 
     // ---------------------- functions for claiming reward token COMP ------------------

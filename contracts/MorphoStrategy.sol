@@ -36,21 +36,6 @@ abstract contract MorphoStrategy is BaseStrategy {
     uint256 public maxGasForMatching = 100000;
     string internal strategyName;
 
-    uint256 public minObservationTimeDiff = 1 days;
-    uint8 private constant MAX_OBSERVATIONS = 30;
-    LiquidityObservation[MAX_OBSERVATIONS] public liquidityObservations;
-    // use max value to indicate that observations are not initialized
-    uint8 public observationIndex = MAX_OBSERVATIONS;
-
-    struct LiquidityObservation {
-        // P2P supply liquidity at the moment of the observation
-        uint256 p2p;
-        // pool supply liquidity at the moment of the observation
-        uint256 pool;
-        // the block timestamp of the observation
-        uint256 timestamp;
-    }
-
     constructor(
         address _vault,
         address _poolToken,
@@ -119,8 +104,6 @@ abstract contract MorphoStrategy is BaseStrategy {
                 maxGasForMatching
             );
         }
-        // TODO: see if this is the best place to call update from
-        updateLiquidityObservation();
     }
 
     function liquidatePosition(uint256 _amountNeeded)
@@ -194,56 +177,6 @@ abstract contract MorphoStrategy is BaseStrategy {
 
     /**
      * @notice
-     *  Updates the array of Liquidity Observations which stores the P2P and pool liquidity at the current moment.
-     *  Update is completed only if minObservationTimeDiff has passed after the last liquidity observation update.
-     *  Only supply liquidity is recorded.
-     * @dev
-     *  History values are recorded in a circular array meaning that the new values will override the oldest value
-     *  after the array is full.
-     */
-    function updateLiquidityObservation() public onlyAuthorized {
-        // store liquidity observation only if at least minObservationTimeDiff has passed
-        if (
-            observationIndex != MAX_OBSERVATIONS &&
-            block.timestamp.sub(
-                liquidityObservations[observationIndex].timestamp
-            ) <
-            minObservationTimeDiff
-        ) {
-            return;
-        }
-
-        if (observationIndex >= MAX_OBSERVATIONS - 1) {
-            // LiqudityObservations act like a circular array
-            observationIndex = 0;
-        } else {
-            observationIndex++;
-        }
-
-        uint256 p2p;
-        uint256 pool;
-        (, , p2p, , pool, ) = lens.getMainMarketData(poolToken);
-        liquidityObservations[observationIndex] = LiquidityObservation({
-            p2p: p2p,
-            pool: pool,
-            timestamp: block.timestamp
-        });
-    }
-
-    /**
-     * @notice
-     *  Set the minimum time that must pass before a new liquidity observation is recored.
-     * @param _minObservationTimeDiff new minimum time that must pass before liquidity observation record update
-     */
-    function setMinObservationTimeDiff(uint256 _minObservationTimeDiff)
-        external
-        onlyAuthorized
-    {
-        minObservationTimeDiff = _minObservationTimeDiff;
-    }
-
-    /**
-     * @notice
      *  Set the maximum amount of gas to consume to get matched in peer-to-peer.
      * @dev
      *  This value is needed in morpho supply liquidity calls.
@@ -258,7 +191,7 @@ abstract contract MorphoStrategy is BaseStrategy {
         maxGasForMatching = _maxGasForMatching;
     }
 
-    // ---------------------- View function ----------------------
+    // ---------------------- View functions ----------------------
     /**
      * @notice
      *  Computes and returns the total amount of underlying ERC20 token a given user has supplied through Morpho
@@ -282,7 +215,7 @@ abstract contract MorphoStrategy is BaseStrategy {
      * @return _balanceInP2P balance provided to P2P deals
      * @return _totalBalance equals to balanceOnPool + balanceInP2P
      */
-    function getSupplyBalance()
+    function getStrategySupplyBalance()
         public
         view
         returns (
@@ -297,35 +230,30 @@ abstract contract MorphoStrategy is BaseStrategy {
 
     /**
      * @notice
-     *  Gets the current P2P liquditiy for supplied and borrowed amount in Morpho protocol for strategy pool token
+     *  Gets the current liquditiy, both P2P and pool, for supplied and borrowed amount in Morpho protocol for strategy pool token
      * @return _p2pSupplyAmount supplied amount of pool token in P2P deals
      * @return _p2pBorrowAmount borrowed amount of pool token in P2P deals
+     * @return _poolSupplyAmount supplied amount of pool token in pool deals, non P2P deals
+     * @return _poolBorrowAmount borrowed amount of pool token in pool deals, non P2P deals
      */
-    function getCurrentP2PLiquditiy()
+    function getCurrentMarketLiquidity()
         external
         view
-        returns (uint256 _p2pSupplyAmount, uint256 _p2pBorrowAmount)
+        returns (
+            uint256 _p2pSupplyAmount,
+            uint256 _p2pBorrowAmount,
+            uint256 _poolSupplyAmount,
+            uint256 _poolBorrowAmount
+        )
     {
-        (, , _p2pSupplyAmount, _p2pBorrowAmount, , ) = lens.getMainMarketData(
-            poolToken
-        );
-    }
-
-    /**
-     * @notice
-     *  Gets the current pool liquditiy for supplied and borrowed amount in Morpho protocol for strategy pool token.
-     *  Pool liquidity is liquidity in underlying protocol, i.e. non P2P deals
-     * @return _poolSupplyAmount supplied amount of pool token in pool deals
-     * @return _poolBorrowAmount borrowed amount of pool token in pool deals
-     */
-    function getCurrentPoolLiquditiy()
-        external
-        view
-        returns (uint256 _poolSupplyAmount, uint256 _poolBorrowAmount)
-    {
-        (, , , , _poolSupplyAmount, _poolBorrowAmount) = lens.getMainMarketData(
-            poolToken
-        );
+        (
+            ,
+            ,
+            _p2pSupplyAmount,
+            _p2pBorrowAmount,
+            _poolSupplyAmount,
+            _poolBorrowAmount
+        ) = lens.getMainMarketData(poolToken);
     }
 
     /**
@@ -333,67 +261,8 @@ abstract contract MorphoStrategy is BaseStrategy {
      *  Caluclates the maximum amount that can be supplied to just P2P deals.
      * @return _maxP2PSupply maximum amount that can be supplied to P2P deals
      */
-    function calculateMaxP2PSupply()
-        external
-        view
-        returns (uint256 _maxP2PSupply)
-    {
+    function getMaxP2PSupply() external view returns (uint256 _maxP2PSupply) {
         (_maxP2PSupply, , ) = getSupplyBalancesForAmount(type(uint128).max);
-    }
-
-    /**
-     * @notice
-     *  Calculates the difference between the current liquidity, both P2P and pool,
-     *  and liquidity that was recorded before number of days.
-     *  Days metric is not correct but the response contains timestamp difference for more accurate analysis.
-     *  If the value is not recorded for a given input, all output values are 0.
-     *  Negative liquidity value indicates that the liquidity has decreased. Only supply liquidity is provided.
-     * @dev
-     *  Real input metric is not days but a position in array.
-     * @param _daysBefore number of days to go back from now to get recorded liquidity data
-     * @return _p2pLiquidityDiff difference between the current P2P liquidity and P2P recorded data before
-     * @return _poolLiquidityDiff difference between the current pool liquidity and pool recorded data before.
-     * Pool liquidity is liquidity that didn't find a match for P2P and is supplied to underlying protocol.
-     * @return _timestampDiff difference between the current timestamp and the timestamp of recorded data
-     */
-    function calculateLiqudityDifference(uint8 _daysBefore)
-        external
-        view
-        returns (
-            int256 _p2pLiquidityDiff,
-            int256 _poolLiquidityDiff,
-            uint256 _timestampDiff
-        )
-    {
-        require(_daysBefore < MAX_OBSERVATIONS, "Max value is 30");
-        require(observationIndex != MAX_OBSERVATIONS, "No values");
-
-        uint8 index;
-        if (observationIndex >= _daysBefore) {
-            index = observationIndex - _daysBefore;
-        } else {
-            // add MAX_OBSERVATIONS to complete the circle, array data is stored in circular way
-            index = observationIndex + MAX_OBSERVATIONS - _daysBefore;
-        }
-
-        LiquidityObservation memory liquidityObservation =
-            liquidityObservations[index];
-        // handle undefined values
-        if (liquidityObservation.timestamp == 0) {
-            return (0, 0, 0);
-        }
-
-        uint256 currentP2p;
-        uint256 currentPool;
-        // get the current supply liquidity data
-        (, , currentP2p, , currentPool, ) = lens.getMainMarketData(poolToken);
-        _p2pLiquidityDiff =
-            toInt256(currentP2p) -
-            toInt256(liquidityObservation.p2p);
-        _poolLiquidityDiff =
-            toInt256(currentPool) -
-            toInt256(liquidityObservation.pool);
-        _timestampDiff = block.timestamp - liquidityObservation.timestamp;
     }
 
     /**
@@ -414,15 +283,4 @@ abstract contract MorphoStrategy is BaseStrategy {
             uint256 _balanceOnPool,
             uint256 _apr
         );
-
-    /**
-     * @notice
-     *  Cast a uint256 to a int256, revert on overflow
-     * @param y The uint256 to be casted
-     * @return z The casted integer, now type int256
-     */
-    function toInt256(uint256 y) internal pure returns (int256 z) {
-        require(y < 2**255);
-        z = int256(y);
-    }
 }

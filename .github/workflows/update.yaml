@@ -60,7 +60,7 @@ jobs:
       env:
         ETHERSCAN_TOKEN: MW5CQA6QK5YMJXP2WP3RA36HM5A7RA1IHA
         WEB3_INFURA_PROJECT_ID: b7821200399e4be2b4e5dbdf06fbe85b
-      run: brownie run scripts/write_liquidity.py
+      run: brownie run scripts/test.py
 
     - name: Update data liquidity file
       uses: test-room-7/action-update-file@v1

@@ -20,12 +20,27 @@ import "@openzeppelin/contracts/math/Math.sol";
 
 import "../interfaces/IMorpho.sol";
 import "../interfaces/ILens.sol";
+import "../interfaces/IUniswapV2Router01.sol";
+import "../interfaces/ySwap/ITradeFactory.sol";
 
 abstract contract MorphoStrategy is BaseStrategy {
     using SafeERC20 for IERC20;
     using Address for address;
     using SafeMath for uint256;
 
+    address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    IUniswapV2Router01 private constant UNI_V2_ROUTER =
+        IUniswapV2Router01(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+    IUniswapV2Router01 private constant SUSHI_V2_ROUTER =
+        IUniswapV2Router01(0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F);
+
+    // ySwap TradeFactory:
+    address public tradeFactory;
+    // Router used for swapping reward token (COMP)
+    IUniswapV2Router01 public currentV2Router;
+    // Minimum amount of COMP to be claimed or sold
+    uint256 public minRewardToClaimOrSell = 0.1 ether;
+    address public rewardToken;
     // Morpho is a contract to handle interaction with the protocol
     IMorpho public immutable morpho;
     // Lens is a contract to fetch data about Morpho protocol
@@ -41,14 +56,23 @@ abstract contract MorphoStrategy is BaseStrategy {
         address _poolToken,
         string memory _strategyName,
         address _morpho,
-        address _lens
+        address _lens,
+        address _rewardToken
     ) public BaseStrategy(_vault) {
         poolToken = _poolToken;
         strategyName = _strategyName;
         lens = ILens(_lens);
         morpho = IMorpho(_morpho);
         want.safeApprove(_morpho, type(uint256).max);
+
+        currentV2Router = SUSHI_V2_ROUTER;
+        rewardToken = _rewardToken;
+        IERC20 iRewardToken = IERC20(_rewardToken);
+        iRewardToken.safeApprove(address(SUSHI_V2_ROUTER), type(uint256).max);
+        iRewardToken.safeApprove(address(UNI_V2_ROUTER), type(uint256).max);
     }
+
+    function claimRewardToken() internal virtual;
 
     // ******** BaseStrategy overriden contract function ************
 
@@ -72,6 +96,9 @@ abstract contract MorphoStrategy is BaseStrategy {
             uint256 _debtPayment
         )
     {
+        claimRewardToken();
+        sellRewardToken();
+
         uint256 totalDebt = vault.strategies(address(this)).totalDebt;
         uint256 totalAssetsAfterProfit = estimatedTotalAssets();
         _profit = totalAssetsAfterProfit > totalDebt
@@ -141,6 +168,13 @@ abstract contract MorphoStrategy is BaseStrategy {
     // NOTE: Can override `tendTrigger` and `harvestTrigger` if necessary
     function prepareMigration(address _newStrategy) internal virtual override {
         liquidateAllPositions();
+
+        claimRewardToken();
+        IERC20 iRewardToken = IERC20(rewardToken);
+        iRewardToken.safeTransfer(
+            _newStrategy,
+            iRewardToken.balanceOf(address(this))
+        );
     }
 
     function protectedTokens()
@@ -204,5 +238,80 @@ abstract contract MorphoStrategy is BaseStrategy {
         onlyAuthorized
     {
         maxGasForMatching = _maxGasForMatching;
+    }
+
+    // ---------------------- functions for selling reward token COMP -------------------
+    /**
+     * @notice
+     *  Set toggle v2 swap router between sushiv2 and univ2
+     */
+    function setToggleV2Router() external onlyAuthorized {
+        currentV2Router = currentV2Router == SUSHI_V2_ROUTER
+            ? UNI_V2_ROUTER
+            : SUSHI_V2_ROUTER;
+    }
+
+    /**
+     * @notice
+     *  Set the minimum amount of compount token need to claim or sell it for `want` token.
+     */
+    function setMinRewardToClaimOrSell(uint256 _minRewardToClaimOrSell)
+        external
+        onlyAuthorized
+    {
+        minRewardToClaimOrSell = _minRewardToClaimOrSell;
+    }
+
+    function sellRewardToken() internal {
+        if (tradeFactory == address(0)) {
+            uint256 rewardTokenBalance =
+                IERC20(rewardToken).balanceOf(address(this));
+            if (rewardTokenBalance > minRewardToClaimOrSell) {
+                currentV2Router.swapExactTokensForTokens(
+                    rewardTokenBalance,
+                    0,
+                    getTokenOutPathV2(rewardToken, address(want)),
+                    address(this),
+                    block.timestamp
+                );
+            }
+        }
+    }
+
+    function getTokenOutPathV2(address _tokenIn, address _tokenOut)
+        internal
+        pure
+        returns (address[] memory _path)
+    {
+        bool isWeth = _tokenIn == address(WETH) || _tokenOut == address(WETH);
+        _path = new address[](isWeth ? 2 : 3);
+        _path[0] = _tokenIn;
+
+        if (isWeth) {
+            _path[1] = _tokenOut;
+        } else {
+            _path[1] = address(WETH);
+            _path[2] = _tokenOut;
+        }
+    }
+
+    // ---------------------- YSWAPS FUNCTIONS ----------------------
+    function setTradeFactory(address _tradeFactory) external onlyGovernance {
+        if (tradeFactory != address(0)) {
+            _removeTradeFactoryPermissions();
+        }
+        IERC20(rewardToken).safeApprove(_tradeFactory, type(uint256).max);
+        ITradeFactory tf = ITradeFactory(_tradeFactory);
+        tf.enable(rewardToken, address(want));
+        tradeFactory = _tradeFactory;
+    }
+
+    function removeTradeFactoryPermissions() external onlyEmergencyAuthorized {
+        _removeTradeFactoryPermissions();
+    }
+
+    function _removeTradeFactoryPermissions() internal {
+        IERC20(rewardToken).safeApprove(tradeFactory, 0);
+        tradeFactory = address(0);
     }
 }

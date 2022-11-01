@@ -46,6 +46,7 @@ token_addresses = {
     "USDC": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",  # USDC
 }
 
+
 # TODO: uncomment those tokens you want to test as want
 @pytest.fixture(
     params=[
@@ -113,6 +114,27 @@ def poolToken(token):
 
 
 @pytest.fixture
+def trade_factory():
+    yield Contract("0x7BAF843e06095f68F4990Ca50161C2C4E4e01ec6")
+
+
+@pytest.fixture
+def ymechs_safe():
+    yield Contract("0x2C01B4AD51a67E2d8F02208F54dF9aC4c0B778B6")
+
+
+@pytest.fixture
+def aave_token():
+    token_address = "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9"
+    yield Contract(token_address)
+
+
+@pytest.fixture
+def aave_whale(accounts):
+    yield accounts.at("0x4da27a545c0c5b758a6ba100e3a049001de870f5", force=True)
+
+
+@pytest.fixture
 def weth():
     yield Contract(token_addresses["WETH"])
 
@@ -151,13 +173,42 @@ def vault(pm, gov, rewards, guardian, management, token):
 
 
 @pytest.fixture
-def strategy(strategist, keeper, vault, poolToken, token, MorphoAaveStrategy, gov):
+def strategy(
+    strategist,
+    keeper,
+    vault,
+    poolToken,
+    MorphoAaveStrategy,
+    gov,
+    trade_factory,
+    ymechs_safe,
+    token,
+):
     strategy = strategist.deploy(
-        MorphoAaveStrategy, vault, poolToken, "StrategyMorphoAave" + token.symbol()
+        MorphoAaveStrategy,
+        vault,
+        poolToken,
+        "StrategyMorphoAave" + token.symbol(),
     )
     strategy.setKeeper(keeper)
     vault.addStrategy(strategy, 10_000, 0, 2**256 - 1, 1_000, {"from": gov})
+    trade_factory.grantRole(
+        trade_factory.STRATEGY(),
+        strategy.address,
+        {"from": ymechs_safe, "gas_price": "0 gwei"},
+    )
+    # strategy.setTradeFactory(trade_factory.address, {"from": gov})
     yield strategy
+
+
+@pytest.fixture
+def uni_address():
+    yield "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"
+
+
+@pytest.fixture
+def sushi_address():
+    yield "0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F"
 
 
 @pytest.fixture(scope="session")
